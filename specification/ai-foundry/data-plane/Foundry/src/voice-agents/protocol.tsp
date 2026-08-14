@@ -673,6 +673,12 @@ model VoiceAgentServerEventResponseTextDone {
 model VoiceAgentServerEventSessionCreated {
   ...OmitProperties<OpenAI.RealtimeServerEventSessionCreated, "session">;
 
+  @doc("""
+    The persisted Foundry conversation identifier for this voice session. This field is omitted when
+    conversation persistence is disabled or could not be initialized.
+    """)
+  conversation_id?: string;
+
   @doc("The initial effective voice-agent session configuration.")
   session: VoiceAgentSessionResponseConfig;
 }
