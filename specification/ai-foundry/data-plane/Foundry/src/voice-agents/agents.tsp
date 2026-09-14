@@ -375,12 +375,40 @@ union VoiceType {
   azure_realtime_native: "azure-realtime-native",
 }
 
+@doc("A PLS pronunciation lexicon uploaded as a uri_file dataset in the agent's Foundry project. Upload a new version when changing its contents.")
+model VoiceAgentProjectFileLexicon {
+  @doc("The lexicon source kind.")
+  type: "project_file";
+
+  @doc("The dataset name in the same project as the voice agent.")
+  @pattern("^[a-zA-Z0-9][a-zA-Z0-9._-]{0,254}$")
+  name: string;
+
+  @doc("The explicit dataset version. The moving latest-version alias is not supported.")
+  @pattern("^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
+  version: string;
+}
+
+@doc("A JSON text-normalization rule file uploaded as a uri_file dataset in the agent's Foundry project. Upload a new version when changing its contents.")
+model VoiceAgentProjectFileTextNormalization {
+  @doc("The text-normalization source kind.")
+  type: "project_file";
+
+  @doc("The dataset name in the same project as the voice agent.")
+  @pattern("^[a-zA-Z0-9][a-zA-Z0-9._-]{0,254}$")
+  name: string;
+
+  @doc("The explicit dataset version. The moving latest-version alias is not supported.")
+  @pattern("^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
+  version: string;
+}
+
 @doc("""
   Output audio configuration for a voice agent.
   Provider-specific fields are selected by `voice_type`:
   - `openai`: `voice` and `speed`.
-  - `azure-standard`: `voice`, `voice_locale`, `speed`, `voice_temperature`, `custom_lexicon_url`,
-    `custom_text_normalization_url`, `prefer_locales`, `style`, `pitch`, and `volume`.
+  - `azure-standard`: `voice`, `voice_locale`, `speed`, `voice_temperature`, `custom_lexicon`, `custom_lexicon_url`,
+    `custom_text_normalization`, `custom_text_normalization_url`, `prefer_locales`, `style`, `pitch`, and `volume`.
   - `azure-custom`: all `azure-standard` fields except `style`, plus `custom_voice_endpoint_id`.
   - `azure-personal`: all `azure-standard` fields except `style`, plus `personal_voice_model`.
   - `avatar-voice-sync`: all `azure-standard` fields except `voice` and `style`, plus `personal_voice_model`; the voice name is derived from the avatar.
@@ -414,8 +442,14 @@ model VoiceAgentAudioOutputConfig {
   @doc("The URL of a custom pronunciation lexicon. Applies to `azure-standard`, `azure-custom`, `azure-personal`, and `avatar-voice-sync`.")
   custom_lexicon_url?: url;
 
+  @doc("A project-owned pronunciation lexicon. Mutually exclusive with custom_lexicon_url. Applies to azure-standard, azure-custom, azure-personal, and avatar-voice-sync. Resolved at session startup; project-file references cannot be changed during a session. Resolved download credentials are never returned to clients.")
+  custom_lexicon?: VoiceAgentProjectFileLexicon;
+
   @doc("The URL of a custom text-normalization configuration. Applies to `azure-standard`, `azure-custom`, `azure-personal`, and `avatar-voice-sync`.")
   custom_text_normalization_url?: url;
+
+  @doc("A project-owned JSON text-normalization rule file. Mutually exclusive with custom_text_normalization_url; may be used together with custom_lexicon. Applies to azure-standard, azure-custom, azure-personal, and avatar-voice-sync. Resolved at session startup; project-file references cannot be changed during a session. Resolved download credentials are never returned to clients.")
+  custom_text_normalization?: VoiceAgentProjectFileTextNormalization;
 
   @doc("Preferred BCP-47 locales for multilingual synthesis. Applies to `azure-standard`, `azure-custom`, `azure-personal`, and `avatar-voice-sync`.")
   prefer_locales?: string[];
