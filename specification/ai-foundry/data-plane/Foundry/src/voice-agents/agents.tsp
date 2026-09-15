@@ -407,8 +407,8 @@ model VoiceAgentProjectFileTextNormalization {
   Output audio configuration for a voice agent.
   Provider-specific fields are selected by `voice_type`:
   - `openai`: `voice` and `speed`.
-  - `azure-standard`: `voice`, `voice_locale`, `speed`, `voice_temperature`, `custom_lexicon`, `custom_lexicon_url`,
-    `custom_text_normalization`, `custom_text_normalization_url`, `prefer_locales`, `style`, `pitch`, and `volume`.
+  - `azure-standard`: `voice`, `voice_locale`, `speed`, `voice_temperature`, `custom_lexicon`,
+    `custom_text_normalization`, `prefer_locales`, `style`, `pitch`, and `volume`.
   - `azure-custom`: all `azure-standard` fields except `style`, plus `custom_voice_endpoint_id`.
   - `azure-personal`: all `azure-standard` fields except `style`, plus `personal_voice_model`.
   - `avatar-voice-sync`: all `azure-standard` fields except `voice` and `style`, plus `personal_voice_model`; the voice name is derived from the avatar.
@@ -439,16 +439,10 @@ model VoiceAgentAudioOutputConfig {
   @maxValue(1)
   voice_temperature?: float32;
 
-  @doc("The URL of a custom pronunciation lexicon. Applies to `azure-standard`, `azure-custom`, `azure-personal`, and `avatar-voice-sync`.")
-  custom_lexicon_url?: url;
-
-  @doc("A project-owned pronunciation lexicon. Mutually exclusive with custom_lexicon_url. Applies to azure-standard, azure-custom, azure-personal, and avatar-voice-sync. Resolved at session startup; project-file references cannot be changed during a session. Resolved download credentials are never returned to clients.")
+  @doc("A project-owned pronunciation lexicon, identified by an explicit dataset name and version. Applies to azure-standard, azure-custom, azure-personal, and avatar-voice-sync. Validated when the agent is created or updated. URLs and connection-time or mid-session file overrides are not supported. File contents and resolved download credentials are never returned to clients.")
   custom_lexicon?: VoiceAgentProjectFileLexicon;
 
-  @doc("The URL of a custom text-normalization configuration. Applies to `azure-standard`, `azure-custom`, `azure-personal`, and `avatar-voice-sync`.")
-  custom_text_normalization_url?: url;
-
-  @doc("A project-owned JSON text-normalization rule file. Mutually exclusive with custom_text_normalization_url; may be used together with custom_lexicon. Applies to azure-standard, azure-custom, azure-personal, and avatar-voice-sync. Resolved at session startup; project-file references cannot be changed during a session. Resolved download credentials are never returned to clients.")
+  @doc("A project-owned JSON text-normalization rule file, identified by an explicit dataset name and version. May be used together with custom_lexicon. Applies to azure-standard, azure-custom, azure-personal, and avatar-voice-sync. Validated when the agent is created or updated. URLs and connection-time or mid-session file overrides are not supported. File contents and resolved download credentials are never returned to clients.")
   custom_text_normalization?: VoiceAgentProjectFileTextNormalization;
 
   @doc("Preferred BCP-47 locales for multilingual synthesis. Applies to `azure-standard`, `azure-custom`, `azure-personal`, and `avatar-voice-sync`.")
