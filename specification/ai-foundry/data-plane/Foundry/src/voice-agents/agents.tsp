@@ -375,32 +375,24 @@ union VoiceType {
   azure_realtime_native: "azure-realtime-native",
 }
 
-@doc("A PLS pronunciation lexicon uploaded as a uri_file dataset in the agent's Foundry project. Upload a new version when changing its contents.")
+@doc("A pronunciation lexicon uploaded through the Files API in the agent's Foundry project. The agent validates and snapshots the file when its definition is created or updated.")
 model VoiceAgentProjectFileLexicon {
   @doc("The lexicon source kind.")
   type: "project_file";
 
-  @doc("The dataset name in the same project as the voice agent.")
-  @pattern("^[a-zA-Z0-9][a-zA-Z0-9._-]{0,254}$")
-  name: string;
-
-  @doc("The explicit dataset version. The moving latest-version alias is not supported.")
-  @pattern("^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
-  version: string;
+  @doc("The opaque file ID returned by the Files API in the same project as the voice agent.")
+  @pattern("^[a-zA-Z0-9][a-zA-Z0-9_-]{0,254}$")
+  file_id: string;
 }
 
-@doc("A JSON text-normalization rule file uploaded as a uri_file dataset in the agent's Foundry project. Upload a new version when changing its contents.")
+@doc("A JSON text-normalization file uploaded through the Files API in the agent's Foundry project. The agent validates and snapshots the file when its definition is created or updated.")
 model VoiceAgentProjectFileTextNormalization {
   @doc("The text-normalization source kind.")
   type: "project_file";
 
-  @doc("The dataset name in the same project as the voice agent.")
-  @pattern("^[a-zA-Z0-9][a-zA-Z0-9._-]{0,254}$")
-  name: string;
-
-  @doc("The explicit dataset version. The moving latest-version alias is not supported.")
-  @pattern("^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
-  version: string;
+  @doc("The opaque file ID returned by the Files API in the same project as the voice agent.")
+  @pattern("^[a-zA-Z0-9][a-zA-Z0-9_-]{0,254}$")
+  file_id: string;
 }
 
 @doc("""
@@ -439,10 +431,10 @@ model VoiceAgentAudioOutputConfig {
   @maxValue(1)
   voice_temperature?: float32;
 
-  @doc("A project-owned pronunciation lexicon, identified by an explicit dataset name and version. Applies to azure-standard, azure-custom, azure-personal, and avatar-voice-sync. Validated when the agent is created or updated. URLs and connection-time or mid-session file overrides are not supported. File contents and resolved download credentials are never returned to clients.")
+  @doc("A project-owned pronunciation lexicon identified by its Files API file_id. Applies to azure-standard, azure-custom, azure-personal, and avatar-voice-sync. Validated and privately snapshotted when the agent is created or updated. URLs and session-time file overrides are not supported. File contents are never returned in agent definitions.")
   custom_lexicon?: VoiceAgentProjectFileLexicon;
 
-  @doc("A project-owned JSON text-normalization rule file, identified by an explicit dataset name and version. May be used together with custom_lexicon. Applies to azure-standard, azure-custom, azure-personal, and avatar-voice-sync. Validated when the agent is created or updated. URLs and connection-time or mid-session file overrides are not supported. File contents and resolved download credentials are never returned to clients.")
+  @doc("A project-owned JSON text-normalization file identified by its Files API file_id. May be used together with custom_lexicon. Applies to azure-standard, azure-custom, azure-personal, and avatar-voice-sync. Validated and privately snapshotted when the agent is created or updated. URLs and session-time file overrides are not supported. File contents are never returned in agent definitions.")
   custom_text_normalization?: VoiceAgentProjectFileTextNormalization;
 
   @doc("Preferred BCP-47 locales for multilingual synthesis. Applies to `azure-standard`, `azure-custom`, `azure-personal`, and `avatar-voice-sync`.")
