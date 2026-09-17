@@ -5,6 +5,7 @@ import "@azure-tools/openai-typespec/models/realtime";
 import "../common/servicepatterns.tsp";
 import "../agents/models.tsp";
 import "../openai/responses/models.tsp";
+import "./live-models.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -99,14 +100,44 @@ model VoiceAgentLlmInterimResponseConfig
 }
 
 @doc("""
-  The voice agent definition. Its configuration (model, instructions, audio, tools, and optional avatar) drives a
-  managed speech-to-speech experience. Establish realtime voice sessions through
-  `GET /agents/{agent_name}/endpoint/protocols/voice`. Every create or update produces a new immutable version.
+  Shared settings for the voice agent kind. The sub_protocol discriminator selects either
+  the existing realtime protocol (including cascaded models), or native GPT Live on a Foundry
+  deployment. Configuration is flat; audio and other protocol-specific fields belong to the
+  selected subtype. Every create or update produces an immutable version.
+  Compatibility: legacy requests and stored definitions that omit sub_protocol are interpreted
+  as realtime. New clients should send the explicit discriminator. Null and unknown values are
+  invalid. A read must not rewrite an existing stored version just to add the default.
   """)
 @extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
+@discriminator("sub_protocol")
 model VoiceAgentDefinition extends AgentDefinition {
-  @doc("The kind discriminator for a voice agent definition. Always `voice`.")
+  @doc("The agent kind. Always voice, independently of the selected voice protocol.")
   kind: AgentKind.voice;
+
+  @doc("The voice protocol. Legacy omission selects realtime; explicit unknown or null values are invalid.")
+  sub_protocol: VoiceAgentSubProtocol;
+
+  @doc("Frontend instructions. Supports template substitution through structured_inputs. Backend Responses instructions belong to delegation.responses.")
+  instructions?: string | null;
+
+  @doc("Structured inputs rendered into frontend instructions before the session starts.")
+  structured_inputs?: Record<StructuredInputDefinition>;
+
+  @doc("Whether Foundry persists the session. Defaults to false. Realtime retains its conversation/audio storage; Live records continuous session audio as one whole-session WAV. This does not enable native GPT Live session storage.")
+  store?: boolean = false;
+}
+
+@doc("Supported voice protocols. Realtime includes both realtime and cascaded Voice Live models.")
+union VoiceAgentSubProtocol {
+  realtime: "realtime",
+  live: "live",
+}
+
+@doc("Voice Live settings for the realtime protocol, including cascaded models. Native Live-only fields are not applicable.")
+@extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
+model RealtimeVoiceAgentDefinition extends VoiceAgentDefinition {
+  @doc("The existing voice protocol. Legacy requests and stored versions may omit this field.")
+  sub_protocol: VoiceAgentSubProtocol.realtime;
 
   @doc("How the model backing this voice agent is served. Required with `model` for a model-backed voice agent and omitted when `conversation_engine` is provided. This is independent of the architecture (realtime or cascaded), which the service derives from the selected model.")
   model_type?: VoiceModelType;
@@ -116,9 +147,6 @@ model VoiceAgentDefinition extends AgentDefinition {
 
   @doc("The engine that owns conversation handling for this voice agent. Exactly one of this property and the model-backed configuration (`model_type` with `model`) must be provided. When this property is provided, `model_type`, `model`, `instructions`, `tools`, and `tool_choice` must be omitted, and `greeting.tool_choice` cannot be `required`, because the engine owns the conversation logic. The initial implementation supports a hosted-agent engine.")
   conversation_engine?: VoiceConversationEngine;
-
-  @doc("A system (or developer) message inserted into the model's context. Supports template substitution via `structured_inputs`, rendered per session before the live session starts.")
-  instructions?: string;
 
   @doc("Optional session-start greeting. Template mode speaks exact rendered text; LLM-generated mode asks the session model to author the opening response and may use configured tools.")
   greeting?: VoiceAgentGreetingConfig;
@@ -164,21 +192,35 @@ model VoiceAgentDefinition extends AgentDefinition {
   @doc("Whether the model may call multiple tools in parallel.")
   parallel_tool_calls?: boolean;
 
-  @doc("Set of structured inputs that participate in prompt template substitution, rendered per session before the live session starts.")
-  structured_inputs?: Record<StructuredInputDefinition>;
-
   @doc("Optional configuration for sibling Foundry text agents that this voice agent may consult as background specialists.")
   subagent_config?: VoiceAgentSubagentConfig;
+}
 
-  @doc("""
-    Whether conversations with this agent are persisted. A single, all-or-nothing persistence switch that defaults to
-    `false` (privacy-safe: off by default). When `true`, Foundry persists the full conversation — the transcript/event
-    timeline and raw audio. When `false`, nothing is persisted and no conversation is surfaced. There is no separate
-    audio-logging control; audio is persisted only as part of this switch. Latency/performance telemetry (e.g.
-    time-to-first-audio, inter-token latency, interruption) is observability-only (customer trace / App Insights) and
-    is not part of the persisted conversation content.
-    """)
-  store?: boolean = false;
+@doc("Native GPT Live settings for a Foundry deployment. This protocol does not use the Voice Live backend or its realtime/cascaded configuration.")
+@extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
+model LiveVoiceAgentDefinition extends VoiceAgentDefinition {
+  @doc("The native GPT Live protocol.")
+  sub_protocol: VoiceAgentSubProtocol.live;
+
+  @doc("Native Live uses a deployment in the Foundry resource, not a Voice Live-hosted model.")
+  model_type: "self_deployed";
+
+  @doc("The Foundry GPT Live deployment name. Sent in session.start.session.model.")
+  @minLength(1)
+  `model`: string;
+
+  @doc("Startup-only bidirectional audio format and output voice. No realtime VAD or Azure speech processing settings.")
+  audio?: LiveInitialSessionAudioParam;
+
+  @doc("Who handles delegated work. Omission or null selects the connected application.")
+  delegation?: LiveDelegation | null;
+
+  @doc("Initial text-only session context. At most 128 messages, with one text part per message.")
+  @maxItems(128)
+  input?: LiveInitialItem[];
+
+  @doc("Frontend data-channel event permissions.")
+  client?: LiveClientConfigParam;
 }
 
 @doc("Configuration for sibling Foundry text agents that a voice agent may consult.")
