@@ -26,6 +26,19 @@ union VoiceAgentClientEventTypeExtension {
 @extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
 union VoiceAgentServerEventTypeExtension {
   warning: "warning",
+
+  /** Incremental arguments for a service-executed system tool. */
+  response_system_tool_arguments_delta: "response.system_tool_arguments.delta",
+
+  /** The completed argument stream for a service-executed system tool. */
+  response_system_tool_arguments_done: "response.system_tool_arguments.done",
+
+  /** New user input cancelled a pending end-conversation action. */
+  session_end_conversation_cancelled: "session.end_conversation.cancelled",
+
+  /** The service committed to closing the session after an end-conversation action. */
+  session_end_conversation_completed: "session.end_conversation.completed",
+
   session_subagent_started: "session.subagent.started",
   session_subagent_completed: "session.subagent.completed",
   session_subagent_aborted: "session.subagent.aborted",
@@ -110,6 +123,36 @@ union VoiceAgentClientEvent {
 // `conversation.created` is replaced by `session.created.conversation_id`, the canonical persisted-conversation id.
 // `input_audio_buffer.dtmf_event_received` is telephony-only and excluded with the rest of the telephony call-control surface.
 @extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
+@example(#{
+  type: "response.system_tool_arguments.delta",
+  event_id: "event_1",
+  response_id: "resp_1",
+  item_id: "item_system_1",
+  output_index: 0,
+  call_id: "call_1",
+  delta: "{\"reason\":",
+  obfuscation: "padding",
+})
+@example(#{
+  type: "response.system_tool_arguments.done",
+  event_id: "event_2",
+  response_id: "resp_1",
+  item_id: "item_system_1",
+  output_index: 0,
+  call_id: "call_1",
+  name: "end_conversation",
+  arguments: "{\"reason\":\"done\"}",
+})
+@example(#{
+  type: "session.end_conversation.cancelled",
+  event_id: "event_3",
+  id: "call_1",
+})
+@example(#{
+  type: "session.end_conversation.completed",
+  event_id: "event_4",
+  id: "call_1",
+})
 union VoiceAgentServerEvent {
   conversation_item_added: OpenAI.RealtimeServerEventConversationItemAdded,
   conversation_item_created: OpenAI.RealtimeServerEventConversationItemCreated,
@@ -141,6 +184,13 @@ union VoiceAgentServerEvent {
   response_done: OpenAI.RealtimeServerEventResponseDone,
   response_function_call_arguments_delta: OpenAI.RealtimeServerEventResponseFunctionCallArgumentsDelta,
   response_function_call_arguments_done: OpenAI.RealtimeServerEventResponseFunctionCallArgumentsDone,
+
+  /** Incremental arguments for a service-executed system tool. */
+  response_system_tool_arguments_delta: VoiceAgentServerEventResponseSystemToolArgumentsDelta,
+
+  /** The completed argument stream for a service-executed system tool. */
+  response_system_tool_arguments_done: VoiceAgentServerEventResponseSystemToolArgumentsDone,
+
   response_mcp_call_arguments_delta: OpenAI.RealtimeServerEventResponseMCPCallArgumentsDelta,
   response_mcp_call_arguments_done: OpenAI.RealtimeServerEventResponseMCPCallArgumentsDone,
   response_mcp_call_completed: OpenAI.RealtimeServerEventResponseMCPCallCompleted,
@@ -151,6 +201,13 @@ union VoiceAgentServerEvent {
   response_output_text_delta: OpenAI.RealtimeServerEventResponseTextDelta,
   response_output_text_done: OpenAI.RealtimeServerEventResponseTextDone,
   session_created: OpenAI.RealtimeServerEventSessionCreated,
+
+  /** New user input cancelled a pending end-conversation action. */
+  session_end_conversation_cancelled: VoiceAgentServerEventSessionEndConversationCancelled,
+
+  /** The service committed to closing the session after an end-conversation action. */
+  session_end_conversation_completed: VoiceAgentServerEventSessionEndConversationCompleted,
+
   session_subagent_started: VoiceAgentServerEventSessionSubagentStarted,
   session_subagent_completed: VoiceAgentServerEventSessionSubagentCompleted,
   session_subagent_aborted: VoiceAgentServerEventSessionSubagentAborted,
@@ -446,6 +503,89 @@ model VoiceAgentClientEventSessionUpdate {
   OpenAI.RealtimeServerEventSessionUpdated.session,
   VoiceAgentSessionResponse
 );
+
+/** Correlation fields shared by system-tool argument events. */
+@extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
+model VoiceAgentSystemToolArgumentsEventFields {
+  /** The server-generated event identifier. */
+  event_id: string;
+
+  /** The identifier of the response containing the system-tool item. */
+  response_id: string;
+
+  /** The identifier of the system-tool item. */
+  item_id: string;
+
+  /** The zero-based index of the system-tool item in the response output. */
+  output_index: int32;
+
+  /** The identifier of the system-tool call. */
+  call_id: string;
+}
+
+/** Incremental JSON argument text for a service-executed system tool. These calls use this event instead of `response.function_call_arguments.delta`. */
+@usage(VoiceAgentServerEventUsage)
+@extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
+model VoiceAgentServerEventResponseSystemToolArgumentsDelta
+  extends OpenAI.RealtimeServerEvent {
+  /** The event type. Always `response.system_tool_arguments.delta`. */
+  type: "response.system_tool_arguments.delta";
+
+  ...VoiceAgentSystemToolArgumentsEventFields;
+
+  /** The incremental argument fragment, which need not be a complete JSON document. */
+  delta: string;
+
+  /** Optional padding metadata. Clients can ignore this value when assembling the arguments. */
+  obfuscation?: string | null;
+}
+
+/** The completed argument stream for a service-executed system tool. This replaces `response.function_call_arguments.done` for system tools and does not indicate that the system action has completed. */
+@usage(VoiceAgentServerEventUsage)
+@extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
+model VoiceAgentServerEventResponseSystemToolArgumentsDone
+  extends OpenAI.RealtimeServerEvent {
+  /** The event type. Always `response.system_tool_arguments.done`. */
+  type: "response.system_tool_arguments.done";
+
+  ...VoiceAgentSystemToolArgumentsEventFields;
+
+  /** The name of the system tool invoked by the service. */
+  name: string;
+
+  /** The final tool arguments as a JSON-encoded string. */
+  arguments: string;
+}
+
+/** Notifies the client that new user input cancelled a pending end-conversation action and the session remains open. */
+@usage(VoiceAgentServerEventUsage)
+@extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
+model VoiceAgentServerEventSessionEndConversationCancelled
+  extends OpenAI.RealtimeServerEvent {
+  /** The event type. Always `session.end_conversation.cancelled`. */
+  type: "session.end_conversation.cancelled";
+
+  /** The server-generated event identifier. */
+  event_id: string;
+
+  /** The `call_id` of the end-conversation system-tool item, not its item identifier. */
+  id: string;
+}
+
+/** Notifies the client that Voice Live has committed to closing the session after an end-conversation action. The close is no longer cancellable. */
+@usage(VoiceAgentServerEventUsage)
+@extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
+model VoiceAgentServerEventSessionEndConversationCompleted
+  extends OpenAI.RealtimeServerEvent {
+  /** The event type. Always `session.end_conversation.completed`. */
+  type: "session.end_conversation.completed";
+
+  /** The server-generated event identifier. */
+  event_id: string;
+
+  /** The `call_id` of the end-conversation system-tool item, not its item identifier. */
+  id: string;
+}
 
 @doc("Fields shared by server events that report the lifecycle of a subagent consultation.")
 @extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)

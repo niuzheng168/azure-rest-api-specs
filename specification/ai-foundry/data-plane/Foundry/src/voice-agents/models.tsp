@@ -163,6 +163,78 @@ alias VoiceConversationItemPersistence = {
   response_id?: string;
 };
 
+/** Additional conversation item kinds returned by Voice Live. */
+@extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
+union VoiceConversationItemTypeExtension {
+  /** A system-tool invocation executed by the service. */
+  system_tool: "system_tool",
+}
+
+#suppress "@azure-tools/typespec-azure-core/experimental-feature" "Registering the Voice Live system-tool discriminator preserves the shared live and persisted conversation-item hierarchy."
+@@copyVariants(
+  OpenAI.RealtimeConversationItemType,
+  VoiceConversationItemTypeExtension
+);
+
+/** The generation status of a system-tool conversation item. */
+@extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
+union VoiceConversationItemSystemToolStatus {
+  /** The tool arguments are still being generated. */
+  in_progress: "in_progress",
+
+  /** Generation of the tool-call item completed. */
+  completed: "completed",
+
+  /** Generation of the tool-call item did not complete. */
+  incomplete: "incomplete",
+}
+
+/** A system-tool invocation returned by Voice Live in conversation-item events, response output, and persisted items. The service executes the tool; clients do not execute it or submit a function-call output for it. */
+@usage(Usage.output | Usage.json)
+@extension("x-ms-foundry-meta", VoiceAgentRequiredPreview)
+@example(#{
+  id: "item_system_1",
+  object: "realtime.item",
+  type: "system_tool",
+  status: "in_progress",
+  name: "end_conversation",
+  call_id: "call_1",
+  arguments: "",
+})
+@example(#{
+  id: "item_system_1",
+  object: "realtime.item",
+  type: "system_tool",
+  status: "completed",
+  name: "end_conversation",
+  call_id: "call_1",
+  arguments: "{\"reason\":\"done\"}",
+})
+model VoiceConversationItemSystemTool extends OpenAI.RealtimeConversationItem {
+  ...VoiceConversationItemPersistence;
+
+  /** The item type. Always `system_tool`, distinct from the `system` tool configuration kind. */
+  type: "system_tool";
+
+  /** The unique identifier of the system-tool item. */
+  id: string;
+
+  /** The object type, when present. Always `realtime.item`. */
+  object?: "realtime.item";
+
+  /** The generation status of the item, not the outcome of the system action. */
+  status: VoiceConversationItemSystemToolStatus;
+
+  /** The name of the system tool invoked by the service. */
+  name: string;
+
+  /** The tool-call identifier used to correlate argument events and system-action notifications. */
+  call_id: string;
+
+  /** The JSON-encoded tool arguments accumulated so far. This can be empty or partial while the item is in progress. */
+  arguments: string;
+}
+
 @@extension(
   OpenAI.RealtimeConversationItem,
   "x-ms-foundry-meta",

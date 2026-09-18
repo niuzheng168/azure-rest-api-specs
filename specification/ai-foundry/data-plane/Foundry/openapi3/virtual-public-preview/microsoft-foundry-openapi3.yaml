@@ -74105,6 +74105,7 @@ components:
           mcp_list_tools: '#/components/schemas/OpenAI.RealtimeMCPListTools'
           mcp_call: '#/components/schemas/OpenAI.RealtimeMCPToolCall'
           mcp_approval_request: '#/components/schemas/OpenAI.RealtimeMCPApprovalRequest'
+          system_tool: '#/components/schemas/VoiceConversationItemSystemTool'
       description: A single item within a Realtime conversation.
       x-ms-foundry-meta:
         required_previews:
@@ -74472,6 +74473,7 @@ components:
             - mcp_call
             - mcp_approval_request
             - message
+            - system_tool
     OpenAI.RealtimeCreateClientSecretRequest:
       type: object
       properties:
@@ -88992,6 +88994,80 @@ components:
         mapping:
           hosted_agent: '#/components/schemas/VoiceHostedAgentConversationEngine'
       description: An engine that owns conversation handling for a voice agent.
+      x-ms-foundry-meta:
+        required_previews:
+          - VoiceAgents=V1Preview
+    VoiceConversationItemSystemTool:
+      type: object
+      required:
+        - type
+        - id
+        - status
+        - name
+        - call_id
+        - arguments
+      properties:
+        created_at:
+          $ref: '#/components/schemas/FoundryTimestamp'
+          description: The Unix timestamp (in seconds) for when the item was persisted.
+          readOnly: true
+        response_id:
+          type: string
+          description: The id of the response that produced this item, when applicable.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - system_tool
+          description: The item type. Always `system_tool`, distinct from the `system` tool configuration kind.
+        id:
+          type: string
+          description: The unique identifier of the system-tool item.
+        object:
+          type: string
+          enum:
+            - realtime.item
+          description: The object type, when present. Always `realtime.item`.
+        status:
+          $ref: '#/components/schemas/VoiceConversationItemSystemToolStatus'
+          description: The generation status of the item, not the outcome of the system action.
+        name:
+          type: string
+          description: The name of the system tool invoked by the service.
+        call_id:
+          type: string
+          description: The tool-call identifier used to correlate argument events and system-action notifications.
+        arguments:
+          type: string
+          description: The JSON-encoded tool arguments accumulated so far. This can be empty or partial while the item is in progress.
+      allOf:
+        - $ref: '#/components/schemas/OpenAI.RealtimeConversationItem'
+      description: A system-tool invocation returned by Voice Live in conversation-item events, response output, and persisted items. The service executes the tool; clients do not execute it or submit a function-call output for it.
+      examples:
+        - id: item_system_1
+          object: realtime.item
+          type: system_tool
+          status: completed
+          name: end_conversation
+          call_id: call_1
+          arguments: '{"reason":"done"}'
+        - id: item_system_1
+          object: realtime.item
+          type: system_tool
+          status: in_progress
+          name: end_conversation
+          call_id: call_1
+          arguments: ''
+      x-ms-foundry-meta:
+        required_previews:
+          - VoiceAgents=V1Preview
+    VoiceConversationItemSystemToolStatus:
+      type: string
+      enum:
+        - in_progress
+        - completed
+        - incomplete
+      description: The generation status of a system-tool conversation item.
       x-ms-foundry-meta:
         required_previews:
           - VoiceAgents=V1Preview
