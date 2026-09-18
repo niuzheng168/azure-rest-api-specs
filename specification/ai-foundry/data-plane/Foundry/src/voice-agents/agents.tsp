@@ -123,7 +123,7 @@ model VoiceAgentDefinition extends AgentDefinition {
   @doc("Structured inputs rendered into frontend instructions before the session starts.")
   structured_inputs?: Record<StructuredInputDefinition>;
 
-  @doc("Whether Foundry persists the session. Defaults to false. Realtime retains its conversation/audio storage; Live records continuous session audio as one whole-session WAV. This does not enable native GPT Live session storage.")
+  @doc("Whether Foundry persists the session. Defaults to false. Realtime retains its conversation/audio storage; Live stores one whole-session WAV and both speakers' transcripts as one session-level aggregate turn using the existing conversation items. This does not enable native GPT Live session storage.")
   store?: boolean = false;
 }
 
