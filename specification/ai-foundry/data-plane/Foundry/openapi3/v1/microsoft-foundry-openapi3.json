@@ -89836,15 +89836,13 @@
             "maximum": 1,
             "description": "The voice variation temperature. Applies to `azure-standard`, `azure-custom`, `azure-personal`, and `avatar-voice-sync`."
           },
-          "custom_lexicon_url": {
-            "type": "string",
-            "format": "uri",
-            "description": "The URL of a custom pronunciation lexicon. Applies to `azure-standard`, `azure-custom`, `azure-personal`, and `avatar-voice-sync`."
+          "custom_lexicon": {
+            "$ref": "#/components/schemas/VoiceAgentProjectFileLexicon",
+            "description": "A project-owned pronunciation lexicon identified by its Files API file_id. Applies to azure-standard, azure-custom, azure-personal, and avatar-voice-sync. Validated and privately snapshotted when the agent is created or updated. URLs and session-time file overrides are not supported. File contents are never returned in agent definitions."
           },
-          "custom_text_normalization_url": {
-            "type": "string",
-            "format": "uri",
-            "description": "The URL of a custom text-normalization configuration. Applies to `azure-standard`, `azure-custom`, `azure-personal`, and `avatar-voice-sync`."
+          "custom_text_normalization": {
+            "$ref": "#/components/schemas/VoiceAgentProjectFileTextNormalization",
+            "description": "A project-owned JSON text-normalization file identified by its Files API file_id. May be used together with custom_lexicon. Applies to azure-standard, azure-custom, azure-personal, and avatar-voice-sync. Validated and privately snapshotted when the agent is created or updated. URLs and session-time file overrides are not supported. File contents are never returned in agent definitions."
           },
           "prefer_locales": {
             "type": "array",
@@ -89881,7 +89879,7 @@
             "description": "Timestamp kinds to include with output audio. Applies to every `voice_type`."
           }
         },
-        "description": "Output audio configuration for a voice agent.\nProvider-specific fields are selected by `voice_type`:\n- `openai`: `voice` and `speed`.\n- `azure-standard`: `voice`, `voice_locale`, `speed`, `voice_temperature`, `custom_lexicon_url`,\n  `custom_text_normalization_url`, `prefer_locales`, `style`, `pitch`, and `volume`.\n- `azure-custom`: all `azure-standard` fields except `style`, plus `custom_voice_endpoint_id`.\n- `azure-personal`: all `azure-standard` fields except `style`, plus `personal_voice_model`.\n- `avatar-voice-sync`: all `azure-standard` fields except `voice` and `style`, plus `personal_voice_model`; the voice name is derived from the avatar.\n- `azure-realtime-native`: `voice` and `speed`.\n`format` and `output_audio_timestamp_types` apply to every voice type.",
+        "description": "Output audio configuration for a voice agent.\nProvider-specific fields are selected by `voice_type`:\n- `openai`: `voice` and `speed`.\n- `azure-standard`: `voice`, `voice_locale`, `speed`, `voice_temperature`, `custom_lexicon`,\n  `custom_text_normalization`, `prefer_locales`, `style`, `pitch`, and `volume`.\n- `azure-custom`: all `azure-standard` fields except `style`, plus `custom_voice_endpoint_id`.\n- `azure-personal`: all `azure-standard` fields except `style`, plus `personal_voice_model`.\n- `avatar-voice-sync`: all `azure-standard` fields except `voice` and `style`, plus `personal_voice_model`; the voice name is derived from the avatar.\n- `azure-realtime-native`: `voice` and `speed`.\n`format` and `output_audio_timestamp_types` apply to every voice type.",
         "x-ms-foundry-meta": {
           "required_previews": [
             "VoiceAgents=V1Preview"
@@ -91164,6 +91162,60 @@
           }
         ],
         "description": "The input audio noise reduction mode.",
+        "x-ms-foundry-meta": {
+          "required_previews": [
+            "VoiceAgents=V1Preview"
+          ]
+        }
+      },
+      "VoiceAgentProjectFileLexicon": {
+        "type": "object",
+        "required": [
+          "type",
+          "file_id"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "project_file"
+            ],
+            "description": "The lexicon source kind."
+          },
+          "file_id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,254}$",
+            "description": "The opaque file ID returned by the Files API in the same project as the voice agent."
+          }
+        },
+        "description": "A pronunciation lexicon uploaded through the Files API in the agent's Foundry project. The agent validates and snapshots the file when its definition is created or updated.",
+        "x-ms-foundry-meta": {
+          "required_previews": [
+            "VoiceAgents=V1Preview"
+          ]
+        }
+      },
+      "VoiceAgentProjectFileTextNormalization": {
+        "type": "object",
+        "required": [
+          "type",
+          "file_id"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "project_file"
+            ],
+            "description": "The text-normalization source kind."
+          },
+          "file_id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,254}$",
+            "description": "The opaque file ID returned by the Files API in the same project as the voice agent."
+          }
+        },
+        "description": "A JSON text-normalization file uploaded through the Files API in the agent's Foundry project. The agent validates and snapshots the file when its definition is created or updated.",
         "x-ms-foundry-meta": {
           "required_previews": [
             "VoiceAgents=V1Preview"
